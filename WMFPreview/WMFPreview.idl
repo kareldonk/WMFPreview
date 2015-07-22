@@ -1,0 +1,76 @@
+// WMFPreview.idl : IDL source for WMFPreview
+//
+
+// This file will be processed by the MIDL tool to
+// produce the type library (WMFPreview.tlb) and marshalling code.
+
+import "oaidl.idl";
+import "ocidl.idl";
+
+[
+	object,
+	uuid(a817e7a2-43fa-11d0-9e44-00aa00b6770a),
+	dual,	
+	pointer_default(unique)
+]
+interface IComponentRegistrar : IDispatch
+{
+	[id(1)]	HRESULT Attach([in] BSTR bstrPath);
+	[id(2)]	HRESULT RegisterAll();
+	[id(3)]	HRESULT UnregisterAll();
+	[id(4)]	HRESULT GetComponents([out] SAFEARRAY(BSTR)* pbstrCLSIDs, [out] SAFEARRAY(BSTR)* pbstrDescriptions);
+	[id(5)]	HRESULT RegisterComponent([in] BSTR bstrCLSID);
+	[id(6)] HRESULT UnregisterComponent([in] BSTR bstrCLSID);
+};
+
+[
+	object,
+	uuid(F8D9CAFD-E72F-4117-95B0-C92729F6DF3E),
+	pointer_default(unique)
+]
+interface IPreview : IUnknown
+{
+};
+
+[
+	object,
+	uuid(3957837E-9426-4D5D-A15D-5C5C857F8FCE),
+	pointer_default(unique)
+]
+interface IThumbnail : IUnknown
+{
+};
+
+[
+	uuid(13BE01F4-937F-4F30-8387-EE1927808BA4),
+	version(1.0),
+	custom(a817e7a1-43fa-11d0-9e44-00aa00b6770a,"{C2EBF0FB-8691-424A-A5E7-8655C7563972}")
+]
+library WMFPreviewLib
+{
+	importlib("stdole2.tlb");
+	[
+		uuid(8C79B249-A495-43ED-B4B9-1D27012A6C8F)
+	]
+	coclass Preview
+	{
+		[default] interface IPreviewHandler;
+	};
+	[
+		uuid(1D0F34D5-BEA5-4770-8F0D-A18ED56CB35D)
+	]
+	coclass Thumbnail
+	{
+		[default] interface IThumbnailProvider;
+	};
+	[
+		uuid(C2EBF0FB-8691-424A-A5E7-8655C7563972)		
+	]
+	coclass CompReg
+	{
+		[default] interface IComponentRegistrar;
+	};
+};
+
+import "shobjidl.idl";
+import "thumbcache.idl";
