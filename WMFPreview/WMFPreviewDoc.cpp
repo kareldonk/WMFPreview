@@ -189,6 +189,7 @@ BOOL WMFPreviewDoc::DrawWMF(HDC hdc, LPRECT lprcBounds)
 			// Draw WMF file
 			OnDrawThumbnail(memDC, &crect);
 
+			// Copy to main paint DC
 			if (BitBlt(hdc, lprcBounds->left, lprcBounds->top, lprcBounds->right - lprcBounds->left, lprcBounds->bottom - lprcBounds->top, memDC, 0, 0, SRCCOPY))
 			{
 				SelectObject(memDC, oldBM);
