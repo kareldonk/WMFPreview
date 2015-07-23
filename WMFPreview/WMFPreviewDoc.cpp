@@ -161,7 +161,7 @@ BOOL WMFPreviewDoc::GetThumbnail(UINT cx, HBITMAP* phbmp, WTS_ALPHATYPE* pdwAlph
 	return FALSE;
 }
 
-BOOL WMFPreviewDoc::DrawWMF(HDC hdc, LPRECT lprcBounds)
+BOOL WMFPreviewDoc::DrawWMF(HDC hdc, LPRECT lprcBounds, COLORREF clrBack)
 {
 	HDC memDC = CreateCompatibleDC(hdc);
 
@@ -173,7 +173,7 @@ BOOL WMFPreviewDoc::DrawWMF(HDC hdc, LPRECT lprcBounds)
 		{
 			HBITMAP oldBM = (HBITMAP)SelectObject(memDC, memBM);
 
-			HBRUSH hDrawBrush = CreateSolidBrush(RGB(255, 255, 255));
+			HBRUSH hDrawBrush = CreateSolidBrush(clrBack);
 
 			// Fill background with white
 			FillRect(memDC, lprcBounds, hDrawBrush);

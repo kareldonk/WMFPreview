@@ -24,7 +24,7 @@ protected:
 		if (GetClientRect(&crect))
 		{
 			WMFPreviewDoc* pDoc = (WMFPreviewDoc*)m_pDocument;
-			pDoc->DrawWMF(hdc, &crect);
+			pDoc->DrawWMF(hdc, &crect, m_clrBack);
 		}
 	}
 

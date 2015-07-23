@@ -46,7 +46,7 @@ public:
 	}
 
 	BOOL GetThumbnail(UINT cx, HBITMAP* phbmp, WTS_ALPHATYPE* pdwAlpha);
-	BOOL DrawWMF(HDC hdc, LPRECT lprcBounds);
+	BOOL DrawWMF(HDC hdc, LPRECT lprcBounds, COLORREF clrBack);
 
 	virtual HRESULT LoadFromStream(IStream* pStream, DWORD grfMode);
 	virtual void InitializeSearchContent();
