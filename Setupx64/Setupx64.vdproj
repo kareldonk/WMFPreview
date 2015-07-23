@@ -44,6 +44,14 @@
             "PrerequisitesLocation" = "2:1"
             "Url" = "8:"
             "ComponentsUrl" = "8:"
+                "Items"
+                {
+                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:.NETFramework,Version=v4.5"
+                    {
+                    "Name" = "8:Microsoft .NET Framework 4.5 (x86 and x64)"
+                    "ProductCode" = "8:.NETFramework,Version=v4.5"
+                    }
+                }
             }
         }
         "Release"
@@ -51,7 +59,7 @@
         "DisplayName" = "8:Release"
         "IsDebugOnly" = "11:FALSE"
         "IsReleaseOnly" = "11:TRUE"
-        "OutputFilename" = "8:..\\Install\\x64\\Setup.msi"
+        "OutputFilename" = "8:..\\Install\\x64\\setup.x64.msi"
         "PackageFilesAs" = "3:2"
         "PackageFileSize" = "3:-2147483648"
         "CabType" = "3:1"
@@ -175,7 +183,7 @@
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:WMFPreview"
         "ProductCode" = "8:{35F437D5-CF62-4DA2-8B50-3A16186E443E}"
-        "PackageCode" = "8:{B9DA2410-339C-4C2C-927D-7E5D6EC6D7EC}"
+        "PackageCode" = "8:{FC8FD364-AC99-470F-9552-FE2DD23267BB}"
         "UpgradeCode" = "8:{48C83E81-3536-4085-9792-7EA48B2BFC47}"
         "AspNetVersion" = "8:4.0.30319.0"
         "RestartWWWService" = "11:FALSE"
