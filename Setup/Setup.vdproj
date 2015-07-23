@@ -183,7 +183,7 @@
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:WMFPreview"
         "ProductCode" = "8:{35F437D5-CF62-4DA2-8B50-3A16186E443E}"
-        "PackageCode" = "8:{B635752A-2309-4552-9B54-573CDB40C2D1}"
+        "PackageCode" = "8:{25D90720-641D-47C3-984A-AAAF2F57E9AD}"
         "UpgradeCode" = "8:{48C83E81-3536-4085-9792-7EA48B2BFC47}"
         "AspNetVersion" = "8:4.0.30319.0"
         "RestartWWWService" = "11:FALSE"
@@ -206,7 +206,7 @@
         "UseSystemSearchPath" = "11:TRUE"
         "TargetPlatform" = "3:0"
         "PreBuildEvent" = "8:"
-        "PostBuildEvent" = "8:\"C:\\Program Files (x86)\\Windows Kits\\8.1\\bin\\x64\\signtool.exe\" sign -f ..\\..\\kareldonk.pfx $(BuiltOuputPath)"
+        "PostBuildEvent" = "8:\"C:\\Program Files (x86)\\Windows Kits\\8.1\\bin\\x64\\signtool.exe\" sign  /t http://timestamp.verisign.com/scripts/timstamp.dll /f ..\\..\\kareldonk.pfx $(BuiltOuputPath)"
         "RunPostBuildEvent" = "3:0"
         }
         "Registry"
