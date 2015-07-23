@@ -183,7 +183,7 @@
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:WMFPreview"
         "ProductCode" = "8:{35F437D5-CF62-4DA2-8B50-3A16186E443E}"
-        "PackageCode" = "8:{FC8FD364-AC99-470F-9552-FE2DD23267BB}"
+        "PackageCode" = "8:{987E6F09-045D-4B68-80B9-B85CC842C208}"
         "UpgradeCode" = "8:{48C83E81-3536-4085-9792-7EA48B2BFC47}"
         "AspNetVersion" = "8:4.0.30319.0"
         "RestartWWWService" = "11:FALSE"
@@ -206,7 +206,7 @@
         "UseSystemSearchPath" = "11:TRUE"
         "TargetPlatform" = "3:1"
         "PreBuildEvent" = "8:"
-        "PostBuildEvent" = "8:"
+        "PostBuildEvent" = "8:\"C:\\Program Files (x86)\\Windows Kits\\8.1\\bin\\x64\\signtool.exe\" sign -f ..\\..\\kareldonk.pfx $(BuiltOuputPath)"
         "RunPostBuildEvent" = "3:0"
         }
         "Registry"
