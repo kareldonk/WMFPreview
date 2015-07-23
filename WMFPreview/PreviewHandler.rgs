@@ -2,7 +2,7 @@ HKCR
 {
 	NoRemove CLSID
 	{
-		ForceRemove {8C79B249-A495-43ED-B4B9-1D27012A6C8F} = s 'Preview Handler Class'
+		ForceRemove {8C79B249-A495-43ED-B4B9-1D27012A6C8F} = s 'WMF and EMF Preview Handler'
 		{
 			InprocServer32 = s '%MODULE%'
 			{
@@ -45,7 +45,7 @@ HKLM
 				{
 					NoRemove PreviewHandlers
 					{
-						val {8C79B249-A495-43ED-B4B9-1D27012A6C8F} = s 'Preview Handler Class'
+						val {8C79B249-A495-43ED-B4B9-1D27012A6C8F} = s 'WMF and EMF Preview Handler'
 					}
 				}
 			}

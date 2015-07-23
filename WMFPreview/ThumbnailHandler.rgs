@@ -2,7 +2,7 @@ HKCR
 {
 	NoRemove CLSID
 	{
-		ForceRemove {1D0F34D5-BEA5-4770-8F0D-A18ED56CB35D} = s 'Thumbnail Handler Class'
+		ForceRemove {1D0F34D5-BEA5-4770-8F0D-A18ED56CB35D} = s 'WMF and EMF Thumbnail Handler'
 		{
 			InprocServer32 = s '%MODULE%'
 			{
