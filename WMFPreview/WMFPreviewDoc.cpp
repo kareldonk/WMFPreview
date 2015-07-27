@@ -7,7 +7,7 @@
 
 HRESULT WMFPreviewDoc::LoadFromStream(IStream* pStream, DWORD grfMode)
 {
-	// We we already have a metafile open return
+	// If we already have a metafile open return
 	if (m_hMetaFile != NULL) return S_FALSE;
 
 	BOOL bShdr = FALSE;

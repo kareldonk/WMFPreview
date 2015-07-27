@@ -36,6 +36,7 @@ public:
 	
 	LRESULT OnEraseBkgnd(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 	{
+		// To reduce flickering, do nothing instead of erasing background
 		bHandled = TRUE;
 
 		return TRUE;
