@@ -4,8 +4,12 @@
 #include <propkey.h>
 #include "WMFPreviewDoc.h"
 
+
 HRESULT WMFPreviewDoc::LoadFromStream(IStream* pStream, DWORD grfMode)
 {
+	// We we already have a metafile open return
+	if (m_hMetaFile != NULL) return S_FALSE;
+
 	BOOL bShdr = FALSE;
 
 	ULONG len = 0;
@@ -51,7 +55,6 @@ HRESULT WMFPreviewDoc::LoadFromStream(IStream* pStream, DWORD grfMode)
 						}
 						else
 						{
-							LARGE_INTEGER pos;
 							pos.QuadPart = 0;
 
 							// Go back to beginning and read entire file
@@ -78,8 +81,23 @@ HRESULT WMFPreviewDoc::LoadFromStream(IStream* pStream, DWORD grfMode)
 
 										if (mfile != NULL)
 										{
+											HDC hdc = ::GetDC(NULL);
+											
+											// GDI+ should be initialized
+											Graphics graphics(hdc);
+
+											// Turn on AntiAliasing for best quality
+											graphics.SetSmoothingMode(SmoothingModeAntiAlias);
+
+											m_MetaFile = new Metafile(mfile);
+
+											// Convert the EMF to EMF+ to enable antialiased drawing
+											m_MetaFile->ConvertToEmfPlus(&graphics);
+
 											m_hMetaFile = mfile;
 											m_HasSpecialWMFHeader = bShdr;
+
+											ReleaseDC(NULL, hdc);
 
 											delete data;
 
@@ -129,7 +147,7 @@ BOOL WMFPreviewDoc::GetThumbnail(UINT cx, HBITMAP* phbmp, WTS_ALPHATYPE* pdwAlph
 			RECT rcBounds;
 			SetRect(&rcBounds, 0, 0, cx, cx);
 
-			// Fill background with white
+			// Fill background
 			FillRect(memDC, &rcBounds, hDrawBrush);
 
 			int margin = 4;
@@ -219,12 +237,15 @@ void WMFPreviewDoc::OnDrawThumbnail(HDC hDrawDC, LPRECT lprcBounds)
 
 	CString strDebug = _T("Debug Info:");
 
+	char buffer[65];
+
 #endif
 
 	if (m_hMetaFile != NULL)
 	{
 		SIZE msize;
 
+		// If we have a special WMF header take the dimensions from there
 		if (m_HasSpecialWMFHeader)
 		{
 			msize.cx = m_SpecialWMFHeader.Right - m_SpecialWMFHeader.Left;
@@ -232,6 +253,7 @@ void WMFPreviewDoc::OnDrawThumbnail(HDC hDrawDC, LPRECT lprcBounds)
 		}
 		else
 		{
+			// Get WMF dimensions from metafile header
 			UINT hdrlen = GetEnhMetaFileHeader(m_hMetaFile, 0, NULL);
 
 			BYTE * buf = new BYTE[hdrlen];
@@ -277,7 +299,6 @@ void WMFPreviewDoc::OnDrawThumbnail(HDC hDrawDC, LPRECT lprcBounds)
 
 #ifdef _DEBUG
 
-		char buffer[65];
 		_itoa_s(msize.cx, buffer, 65, 10);
 		strDebug += _T(" WMFRECT: ");
 		strDebug += buffer;
@@ -303,13 +324,27 @@ void WMFPreviewDoc::OnDrawThumbnail(HDC hDrawDC, LPRECT lprcBounds)
 
 #endif
 
+		// Set the drawing area
 		RECT prect;
 		prect.left = ((dw - w2) / 2) + lprcBounds->left;
 		prect.top = (dh - h2) / 2 + lprcBounds->top;
 		prect.right = prect.left + w2;
 		prect.bottom = prect.top + h2;
-			
-		PlayEnhMetaFile(hDrawDC, m_hMetaFile, &prect);
+		
+		// The line below draws the metafile using the older GDI function, 
+		// but we'll use GDI+ instead for better (antialiased) quality (although slower)
+		//PlayEnhMetaFile(hDrawDC, m_hMetaFile, &prect);
+
+		// Using GDI+ to draw
+		Graphics graphics(hDrawDC);
+
+		// Turn on AntiAliasing for best quality
+		graphics.SetSmoothingMode(SmoothingModeAntiAlias);
+
+		Rect rect(prect.left, prect.top, w2, h2);
+
+		// Draw the metafile
+		graphics.DrawImage(m_MetaFile, rect);
 	}
 #ifdef _DEBUG
 	else strDebug += _T(" NO_WMF_FILE");
@@ -318,7 +353,7 @@ void WMFPreviewDoc::OnDrawThumbnail(HDC hDrawDC, LPRECT lprcBounds)
 	LOGFONT lf;
 
 	GetObject(hStockFont, sizeof(LOGFONT), &lf);
-	lf.lfHeight = 34;
+	lf.lfHeight = 24;
 
 	HFONT hDrawFont = CreateFontIndirect(&lf);
 	HFONT hOldFont = (HFONT) SelectObject(hDrawDC, hDrawFont);
@@ -327,7 +362,6 @@ void WMFPreviewDoc::OnDrawThumbnail(HDC hDrawDC, LPRECT lprcBounds)
 
 	SetTextColor(hDrawDC, RGB(255, 0, 0));
 
-	char buffer[65];
 	_itoa_s(bdept, buffer, 65, 10);
 	strDebug += _T(" ");
 	strDebug += buffer;

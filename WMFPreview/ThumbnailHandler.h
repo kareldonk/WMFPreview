@@ -19,8 +19,16 @@ class ATL_NO_VTABLE CThumbnailHandler :
 	public CComCoClass<CThumbnailHandler, &CLSID_Thumbnail>,
 	public CThumbnailProviderImpl
 {
+protected:
+	ULONG_PTR gdiplusToken;
+	GdiplusStartupInput gdiplusStartupInput;
+
 public:
 	CThumbnailHandler()
+	{
+	}
+
+	~CThumbnailHandler()
 	{
 	}
 

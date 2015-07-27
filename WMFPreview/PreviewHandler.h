@@ -59,6 +59,10 @@ public:
 	{
 	}
 
+	~CPreviewHandler()
+	{
+	}
+
 DECLARE_REGISTRY_RESOURCEID(IDR_PREVIEW_HANDLER)
 DECLARE_NOT_AGGREGATABLE(CPreviewHandler)
 

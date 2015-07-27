@@ -35,3 +35,9 @@
 #include <atlbase.h>
 #include <atlcom.h>
 #include <atlctl.h>
+
+#define GDIPVER     0x0110  // Use more advanced GDI+ features
+
+#include "Gdiplus.h"
+
+#pragma comment (lib,"Gdiplus.lib")

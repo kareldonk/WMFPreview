@@ -21,10 +21,8 @@ extern "C" BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpRes
 	switch (dwReason)
 	{
 	case DLL_PROCESS_ATTACH:
-		//
 		break;
 	case DLL_PROCESS_DETACH:
-		//
 		break;
 	}
 

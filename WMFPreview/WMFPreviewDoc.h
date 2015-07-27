@@ -5,6 +5,7 @@
 #include <atlhandlerimpl.h>
 
 using namespace ATL;
+using namespace Gdiplus;
 
 typedef struct _WmfSpecialHeader
 {
@@ -28,21 +29,38 @@ protected:
 	WMFSPECIALHEADER m_SpecialWMFHeader;
 	BOOL m_HasSpecialWMFHeader;
 	HENHMETAFILE m_hMetaFile;
+	Metafile * m_MetaFile;
+
+	ULONG_PTR gdiplusToken;
+	GdiplusStartupInput gdiplusStartupInput;
 
 public:
 	WMFPreviewDoc(void)
 	{
 		m_HasSpecialWMFHeader = FALSE;
 		m_hMetaFile = NULL;
+		m_MetaFile = NULL;
+
+		// Initialize GDI+
+		GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
 	}
 
 	virtual ~WMFPreviewDoc(void)
 	{
+		if (m_MetaFile != NULL)
+		{
+			delete m_MetaFile;
+			m_MetaFile = NULL;
+		}
+
 		if (m_hMetaFile != NULL)
 		{
 			DeleteEnhMetaFile(m_hMetaFile);
 			m_hMetaFile = NULL;
 		}
+
+		// Shutdown GDI+
+		GdiplusShutdown(gdiplusToken);
 	}
 
 	BOOL GetThumbnail(UINT cx, HBITMAP* phbmp, WTS_ALPHATYPE* pdwAlpha);
