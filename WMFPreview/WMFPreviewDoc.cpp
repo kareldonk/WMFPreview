@@ -14,6 +14,7 @@ HRESULT WMFPreviewDoc::LoadFromStream(IStream* pStream, DWORD grfMode)
 
 	ULONG len = 0;
 	STATSTG stat;
+	ZeroMemory(&stat, sizeof(STATSTG));
 
 	if (pStream->Stat(&stat, STATFLAG_DEFAULT) != S_OK)
 	{
@@ -34,7 +35,7 @@ HRESULT WMFPreviewDoc::LoadFromStream(IStream* pStream, DWORD grfMode)
 			}
 
 			LARGE_INTEGER pos;
-			pos.QuadPart = 0;
+			ZeroMemory(&pos, sizeof(LARGE_INTEGER));
 
 			if (bShdr) pos.QuadPart = WMFSPECIALHEADERSIZE;
 
@@ -244,6 +245,7 @@ void WMFPreviewDoc::OnDrawThumbnail(HDC hDrawDC, LPRECT lprcBounds)
 	if (m_hMetaFile != NULL)
 	{
 		SIZE msize;
+		ZeroMemory(&msize, sizeof(SIZE));
 
 		// If we have a special WMF header take the dimensions from there
 		if (m_HasSpecialWMFHeader)
@@ -276,21 +278,21 @@ void WMFPreviewDoc::OnDrawThumbnail(HDC hDrawDC, LPRECT lprcBounds)
 		int w2 = dw;
 		int h2 = dh;
 
-		if (msize.cx > msize.cy)
+		if (msize.cx > msize.cy && msize.cx > 0)
 		{
 			h2 = (int) (w2 * (float) ((float) msize.cy / (float) msize.cx));
 
-			if (h2 > dh)
+			if (h2 > dh && h2 > 0)
 			{
 				w2 = (int) (w2 * (float) ((float) dh / (float) h2));
 				h2 = dh;
 			}
 		}
-		else
+		else if (msize.cy > 0)
 		{
 			w2 = (int) (h2 * (float) ((float) msize.cx / (float) msize.cy));
 
-			if (w2 > dw)
+			if (w2 > dw && w2 > 0)
 			{
 				h2 = (int) (h2 * (float) ((float) dw / (float) w2));
 				w2 = dw;
@@ -308,7 +310,6 @@ void WMFPreviewDoc::OnDrawThumbnail(HDC hDrawDC, LPRECT lprcBounds)
 
 		strDebug += _T(" WNDRECT: ");
 		_itoa_s(dw, buffer, 65, 10);
-		strDebug += _T(" / ");
 		strDebug += buffer;
 		_itoa_s(dh, buffer, 65, 10);
 		strDebug += _T(" / ");
@@ -316,7 +317,6 @@ void WMFPreviewDoc::OnDrawThumbnail(HDC hDrawDC, LPRECT lprcBounds)
 
 		strDebug += _T(" DRWRECT: ");
 		_itoa_s(w2, buffer, 65, 10);
-		strDebug += _T(" / ");
 		strDebug += buffer;
 		_itoa_s(h2, buffer, 65, 10);
 		strDebug += _T(" / ");
