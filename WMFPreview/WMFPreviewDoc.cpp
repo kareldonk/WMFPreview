@@ -7,8 +7,8 @@
 
 HRESULT WMFPreviewDoc::LoadFromStream(IStream* pStream, DWORD grfMode)
 {
-	// If we already have a metafile open return
-	if (m_hMetaFile != NULL) return S_FALSE;
+	// If we already have a metafile release it 
+	if (m_hMetaFile != NULL) ReleaseWMF();
 
 	BOOL bShdr = FALSE;
 
@@ -16,12 +16,11 @@ HRESULT WMFPreviewDoc::LoadFromStream(IStream* pStream, DWORD grfMode)
 	STATSTG stat;
 	ZeroMemory(&stat, sizeof(STATSTG));
 
-	if (pStream->Stat(&stat, STATFLAG_DEFAULT) != S_OK)
-	{
-		return S_FALSE;
-	}
+	if (pStream->Stat(&stat, STATFLAG_DEFAULT) != S_OK) return S_FALSE;
 
 	if (stat.cbSize.QuadPart < WMFSPECIALHEADERSIZE) return S_FALSE;
+
+	ZeroMemory(&m_SpecialWMFHeader, WMFSPECIALHEADERSIZE);
 
 	// First check if there's a special WMF header
 	if (pStream->Read(&m_SpecialWMFHeader, WMFSPECIALHEADERSIZE, &len) == S_OK)
@@ -32,6 +31,9 @@ HRESULT WMFPreviewDoc::LoadFromStream(IStream* pStream, DWORD grfMode)
 			{
 				// Has special WMF header
 				bShdr = TRUE;
+
+				// Calculate header cheksum and verify
+				if (CalcWMFHeaderChecksum(&m_SpecialWMFHeader) != m_SpecialWMFHeader.Checksum) return S_FALSE;
 			}
 
 			LARGE_INTEGER pos;
@@ -43,18 +45,15 @@ HRESULT WMFPreviewDoc::LoadFromStream(IStream* pStream, DWORD grfMode)
 			{
 				METAHEADER hdr;
 
+				ZeroMemory(&hdr, sizeof(METAHEADER));
+
 				// Read WMF header
 				if (pStream->Read(&hdr, sizeof(hdr), &len) == S_OK)
 				{
 					if (len == sizeof(hdr))
 					{
-						// Type should be 1 or 2 if valid WMF file
-						if ((hdr.mtType != 1) && (hdr.mtType != 2))
-						{
-							// Probably not a WMF file
-							return S_FALSE;
-						}
-						else
+						// Should be valid WMF file
+						if ((hdr.mtType == WmfType::DISKMETAFILE) || (hdr.mtType == WmfType::MEMORYMETAFILE))
 						{
 							pos.QuadPart = 0;
 
@@ -127,6 +126,38 @@ void WMFPreviewDoc::SetSearchContent(CString& value)
 {
 }
 
+void WMFPreviewDoc::ReleaseWMF()
+{
+	if (m_MetaFile != NULL)
+	{
+		delete m_MetaFile;
+		m_MetaFile = NULL;
+	}
+
+	if (m_hMetaFile != NULL)
+	{
+		DeleteEnhMetaFile(m_hMetaFile);
+		m_hMetaFile = NULL;
+	}
+
+	m_HasSpecialWMFHeader = FALSE;
+}
+
+WORD WMFPreviewDoc::CalcWMFHeaderChecksum(WMFSPECIALHEADER* wmfsh)
+{
+	WORD chksum = 0;
+
+	WORD * words = (WORD*)wmfsh;
+
+	// Calculate chumsum for first 10 words
+	for (int x = 0; x < 10; x++)
+	{
+		chksum ^= words[x];
+	}
+
+	return chksum;
+}
+
 BOOL WMFPreviewDoc::GetThumbnail(UINT cx, HBITMAP* phbmp, WTS_ALPHATYPE* pdwAlpha)
 {
 	// In case no valid WMF was loaded return
@@ -137,7 +168,7 @@ BOOL WMFPreviewDoc::GetThumbnail(UINT cx, HBITMAP* phbmp, WTS_ALPHATYPE* pdwAlph
 
 	if (memDC != NULL)
 	{
-		HBITMAP memBM = CreateCompatibleBitmap(hdc, cx, cx);
+		HBITMAP memBM = CreateBitmap(cx, cx, 1, 32, NULL);
 
 		if (memBM != NULL)
 		{
@@ -168,6 +199,7 @@ BOOL WMFPreviewDoc::GetThumbnail(UINT cx, HBITMAP* phbmp, WTS_ALPHATYPE* pdwAlph
 			ReleaseDC(NULL, hdc);
 
 			*phbmp = memBM;
+			*pdwAlpha = WTS_ALPHATYPE::WTSAT_ARGB;
 
 			return TRUE;
 		}
@@ -186,7 +218,7 @@ BOOL WMFPreviewDoc::DrawWMF(HDC hdc, LPRECT lprcBounds, COLORREF clrBack)
 
 	if (memDC != NULL)
 	{
-		HBITMAP memBM = CreateCompatibleBitmap(hdc, lprcBounds->right - lprcBounds->left, lprcBounds->bottom - lprcBounds->top);
+		HBITMAP memBM = CreateBitmap(lprcBounds->right - lprcBounds->left, lprcBounds->bottom - lprcBounds->top, 1, 32, NULL);
 
 		if (memBM != NULL)
 		{
@@ -241,6 +273,12 @@ void WMFPreviewDoc::OnDrawThumbnail(HDC hDrawDC, LPRECT lprcBounds)
 	char buffer[65];
 
 #endif
+
+	// Using GDI+ to draw
+	Graphics graphics(hDrawDC);
+
+	// Turn on AntiAliasing for best quality
+	graphics.SetSmoothingMode(SmoothingModeAntiAlias);
 
 	if (m_hMetaFile != NULL)
 	{
@@ -322,6 +360,18 @@ void WMFPreviewDoc::OnDrawThumbnail(HDC hDrawDC, LPRECT lprcBounds)
 		strDebug += _T(" / ");
 		strDebug += buffer;
 
+		if (m_HasSpecialWMFHeader)
+		{
+			int checksum = CalcWMFHeaderChecksum(&m_SpecialWMFHeader);
+
+			_itoa_s(checksum, buffer, 65, 10);
+			strDebug += _T(" CHK: ");
+			strDebug += buffer;
+			_itoa_s(m_SpecialWMFHeader.Checksum, buffer, 65, 10);
+			strDebug += _T(" / ");
+			strDebug += buffer;
+		}
+
 #endif
 
 		// Set the drawing area
@@ -334,12 +384,6 @@ void WMFPreviewDoc::OnDrawThumbnail(HDC hDrawDC, LPRECT lprcBounds)
 		// The line below draws the metafile using the older GDI function, 
 		// but we'll use GDI+ instead for better (antialiased) quality (although slower)
 		//PlayEnhMetaFile(hDrawDC, m_hMetaFile, &prect);
-
-		// Using GDI+ to draw
-		Graphics graphics(hDrawDC);
-
-		// Turn on AntiAliasing for best quality
-		graphics.SetSmoothingMode(SmoothingModeAntiAlias);
 
 		Rect rect(prect.left, prect.top, w2, h2);
 
@@ -354,23 +398,23 @@ void WMFPreviewDoc::OnDrawThumbnail(HDC hDrawDC, LPRECT lprcBounds)
 
 	GetObject(hStockFont, sizeof(LOGFONT), &lf);
 	lf.lfHeight = 24;
-
 	HFONT hDrawFont = CreateFontIndirect(&lf);
-	HFONT hOldFont = (HFONT) SelectObject(hDrawDC, hDrawFont);
 
 	int bdept = GetDeviceCaps(hDrawDC, BITSPIXEL);
-
-	SetTextColor(hDrawDC, RGB(255, 0, 0));
 
 	_itoa_s(bdept, buffer, 65, 10);
 	strDebug += _T(" ");
 	strDebug += buffer;
 	strDebug += _T("BIT");
 
-	DrawText(hDrawDC, strDebug, strDebug.GetLength(), lprcBounds, DT_CENTER | DT_WORDBREAK);
+	Font drawFont(hDrawDC, hDrawFont);
+	SolidBrush drawBrush(Color::Red);
 
-	SelectObject(hDrawDC, hDrawFont);
-	SelectObject(hDrawDC, hOldFont);
+	StringFormat strFmt;
+
+	// Create point for upper-left corner of drawing.
+	RectF drawRect(PointF(0, 0), SizeF((REAL)lprcBounds->right - lprcBounds->left, (REAL)lprcBounds->bottom - lprcBounds->top));
+	graphics.DrawString(strDebug, strDebug.GetLength(), &drawFont, drawRect, &strFmt, &drawBrush);
 
 	DeleteObject(hDrawFont);
 #endif

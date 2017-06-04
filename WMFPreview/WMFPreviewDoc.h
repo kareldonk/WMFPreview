@@ -7,6 +7,8 @@
 using namespace ATL;
 using namespace Gdiplus;
 
+// META_PLACEABLE record; see: https://msdn.microsoft.com/en-us/library/cc669452.aspx
+
 typedef struct _WmfSpecialHeader
 {
 	DWORD Key;           /* Magic number (always 9AC6CDD7h) */
@@ -19,6 +21,20 @@ typedef struct _WmfSpecialHeader
 	DWORD Reserved;      /* Reserved (always 0) */
 	WORD  Checksum;      /* Checksum value for previous 10 WORDs */
 } WMFSPECIALHEADER;
+
+// See https://msdn.microsoft.com/en-us/library/cc250418.aspx
+
+typedef enum
+{
+	MEMORYMETAFILE = 0x0001,
+	DISKMETAFILE = 0x0002
+} WmfType;
+
+typedef enum
+{
+	METAVERSION100 = 0x0100,
+	METAVERSION300 = 0x0300
+} WmfVersion;
 
 #define	WMFSPECIALHEADERKEY		0x9AC6CDD7
 #define	WMFSPECIALHEADERSIZE	22
@@ -47,22 +63,14 @@ public:
 
 	virtual ~WMFPreviewDoc(void)
 	{
-		if (m_MetaFile != NULL)
-		{
-			delete m_MetaFile;
-			m_MetaFile = NULL;
-		}
-
-		if (m_hMetaFile != NULL)
-		{
-			DeleteEnhMetaFile(m_hMetaFile);
-			m_hMetaFile = NULL;
-		}
+		ReleaseWMF();
 
 		// Shutdown GDI+
 		GdiplusShutdown(gdiplusToken);
 	}
 
+	void ReleaseWMF();
+	WORD CalcWMFHeaderChecksum(WMFSPECIALHEADER* wmfsh);
 	BOOL GetThumbnail(UINT cx, HBITMAP* phbmp, WTS_ALPHATYPE* pdwAlpha);
 	BOOL DrawWMF(HDC hdc, LPRECT lprcBounds, COLORREF clrBack);
 
