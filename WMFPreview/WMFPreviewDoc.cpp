@@ -149,7 +149,7 @@ WORD WMFPreviewDoc::CalcWMFHeaderChecksum(WMFSPECIALHEADER* wmfsh)
 
 	WORD * words = (WORD*)wmfsh;
 
-	// Calculate chumsum for first 10 words
+	// Calculate checksum for first 10 words
 	for (int x = 0; x < 10; x++)
 	{
 		chksum ^= words[x];
@@ -199,7 +199,7 @@ BOOL WMFPreviewDoc::GetThumbnail(UINT cx, HBITMAP* phbmp, WTS_ALPHATYPE* pdwAlph
 			ReleaseDC(NULL, hdc);
 
 			*phbmp = memBM;
-			*pdwAlpha = WTS_ALPHATYPE::WTSAT_ARGB;
+			*pdwAlpha = WTS_ALPHATYPE::WTSAT_UNKNOWN;
 
 			return TRUE;
 		}
@@ -268,9 +268,8 @@ void WMFPreviewDoc::OnDrawThumbnail(HDC hDrawDC, LPRECT lprcBounds)
 {
 #ifdef _DEBUG
 
+	CString temp;
 	CString strDebug = _T("Debug Info:");
-
-	char buffer[65];
 
 #endif
 
@@ -339,37 +338,15 @@ void WMFPreviewDoc::OnDrawThumbnail(HDC hDrawDC, LPRECT lprcBounds)
 
 #ifdef _DEBUG
 
-		_itoa_s(msize.cx, buffer, 65, 10);
-		strDebug += _T(" WMFRECT: ");
-		strDebug += buffer;
-		_itoa_s(msize.cy, buffer, 65, 10);
-		strDebug += _T(" / ");
-		strDebug += buffer;
-
-		strDebug += _T(" WNDRECT: ");
-		_itoa_s(dw, buffer, 65, 10);
-		strDebug += buffer;
-		_itoa_s(dh, buffer, 65, 10);
-		strDebug += _T(" / ");
-		strDebug += buffer;
-
-		strDebug += _T(" DRWRECT: ");
-		_itoa_s(w2, buffer, 65, 10);
-		strDebug += buffer;
-		_itoa_s(h2, buffer, 65, 10);
-		strDebug += _T(" / ");
-		strDebug += buffer;
+		temp.Format(_T(" WMFRECT: %d/%d WNDRECT: %d/%d  DRWRECT: %d/%d"), msize.cx, msize.cy, dw, dh, w2, h2);
+		strDebug += temp;
 
 		if (m_HasSpecialWMFHeader)
 		{
 			int checksum = CalcWMFHeaderChecksum(&m_SpecialWMFHeader);
 
-			_itoa_s(checksum, buffer, 65, 10);
-			strDebug += _T(" CHK: ");
-			strDebug += buffer;
-			_itoa_s(m_SpecialWMFHeader.Checksum, buffer, 65, 10);
-			strDebug += _T(" / ");
-			strDebug += buffer;
+			temp.Format(_T(" CHK: %d/%d"), checksum, m_SpecialWMFHeader.Checksum);
+			strDebug += temp;
 		}
 
 #endif
@@ -402,10 +379,8 @@ void WMFPreviewDoc::OnDrawThumbnail(HDC hDrawDC, LPRECT lprcBounds)
 
 	int bdept = GetDeviceCaps(hDrawDC, BITSPIXEL);
 
-	_itoa_s(bdept, buffer, 65, 10);
-	strDebug += _T(" ");
-	strDebug += buffer;
-	strDebug += _T("BIT");
+	temp.Format(_T(" %dBIT"), bdept);
+	strDebug += temp;
 
 	Font drawFont(hDrawDC, hDrawFont);
 	SolidBrush drawBrush(Color::Red);
