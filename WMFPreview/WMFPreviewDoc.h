@@ -30,12 +30,6 @@ typedef enum
 	DISKMETAFILE = 0x0002
 } WmfType;
 
-typedef enum
-{
-	METAVERSION100 = 0x0100,
-	METAVERSION300 = 0x0300
-} WmfVersion;
-
 #define	WMFSPECIALHEADERKEY		0x9AC6CDD7
 #define	WMFSPECIALHEADERSIZE	22
 

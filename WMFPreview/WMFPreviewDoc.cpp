@@ -4,6 +4,7 @@
 #include <propkey.h>
 #include "WMFPreviewDoc.h"
 
+// TODO: Add icon and change resource id in rgs
 
 HRESULT WMFPreviewDoc::LoadFromStream(IStream* pStream, DWORD grfMode)
 {
@@ -32,8 +33,9 @@ HRESULT WMFPreviewDoc::LoadFromStream(IStream* pStream, DWORD grfMode)
 				// Has special WMF header
 				bShdr = TRUE;
 
-				// Calculate header cheksum and verify
-				if (CalcWMFHeaderChecksum(&m_SpecialWMFHeader) != m_SpecialWMFHeader.Checksum) return S_FALSE;
+				// Verify correct header
+				if (CalcWMFHeaderChecksum(&m_SpecialWMFHeader) != m_SpecialWMFHeader.Checksum ||
+					m_SpecialWMFHeader.Handle != 0 || m_SpecialWMFHeader.Reserved != 0) return S_FALSE;
 			}
 
 			LARGE_INTEGER pos;
@@ -53,7 +55,7 @@ HRESULT WMFPreviewDoc::LoadFromStream(IStream* pStream, DWORD grfMode)
 					if (len == sizeof(hdr))
 					{
 						// Should be valid WMF file
-						if ((hdr.mtType == WmfType::DISKMETAFILE) || (hdr.mtType == WmfType::MEMORYMETAFILE))
+						if ((hdr.mtType == WmfType::DISKMETAFILE || hdr.mtType == WmfType::MEMORYMETAFILE))
 						{
 							pos.QuadPart = 0;
 
@@ -70,7 +72,7 @@ HRESULT WMFPreviewDoc::LoadFromStream(IStream* pStream, DWORD grfMode)
 
 										if (bShdr)
 										{
-											// Old style windows meta file
+											// Old style windows meta file; convert to enhanced metafile
 											mfile = SetWinMetaFileBits((ULONG) stat.cbSize.QuadPart - WMFSPECIALHEADERSIZE, data + WMFSPECIALHEADERSIZE, NULL, NULL);
 										}
 										else
@@ -163,12 +165,18 @@ BOOL WMFPreviewDoc::GetThumbnail(UINT cx, HBITMAP* phbmp, WTS_ALPHATYPE* pdwAlph
 	// In case no valid WMF was loaded return
 	if (m_hMetaFile == NULL) return FALSE;
 
+	BOOL rval = FALSE;
+
 	HDC hdc = ::GetDC(NULL);
 	HDC memDC = CreateCompatibleDC(hdc);
 
 	if (memDC != NULL)
 	{
-		HBITMAP memBM = CreateBitmap(cx, cx, 1, 32, NULL);
+		int blen = cx * cx * 4;
+		BYTE * bytes = new BYTE[blen];
+		ZeroMemory(bytes, blen);
+
+		HBITMAP memBM = CreateBitmap(cx, cx, 1, 32, bytes);
 
 		if (memBM != NULL)
 		{
@@ -195,25 +203,26 @@ BOOL WMFPreviewDoc::GetThumbnail(UINT cx, HBITMAP* phbmp, WTS_ALPHATYPE* pdwAlph
 			SelectObject(memDC, oldBM);
 
 			DeleteObject(hDrawBrush);
-			DeleteDC(memDC);
-			ReleaseDC(NULL, hdc);
 
 			*phbmp = memBM;
-			*pdwAlpha = WTS_ALPHATYPE::WTSAT_UNKNOWN;
+			*pdwAlpha = WTS_ALPHATYPE::WTSAT_ARGB;
 
-			return TRUE;
+			rval = TRUE;
 		}
 
+		delete bytes;
 		DeleteDC(memDC);
 	}
 
 	ReleaseDC(NULL, hdc);
 
-	return FALSE;
+	return rval;
 }
 
 BOOL WMFPreviewDoc::DrawWMF(HDC hdc, LPRECT lprcBounds, COLORREF clrBack)
 {
+	BOOL rval = FALSE;
+
 	HDC memDC = CreateCompatibleDC(hdc);
 
 	if (memDC != NULL)
@@ -241,16 +250,7 @@ BOOL WMFPreviewDoc::DrawWMF(HDC hdc, LPRECT lprcBounds, COLORREF clrBack)
 			OnDrawThumbnail(memDC, &crect);
 
 			// Copy to main paint DC
-			if (BitBlt(hdc, lprcBounds->left, lprcBounds->top, lprcBounds->right - lprcBounds->left, lprcBounds->bottom - lprcBounds->top, memDC, 0, 0, SRCCOPY))
-			{
-				SelectObject(memDC, oldBM);
-
-				DeleteObject(memBM);
-				DeleteObject(hDrawBrush);
-				DeleteDC(memDC);
-
-				return TRUE;
-			}
+			rval = BitBlt(hdc, lprcBounds->left, lprcBounds->top, lprcBounds->right - lprcBounds->left, lprcBounds->bottom - lprcBounds->top, memDC, 0, 0, SRCCOPY);
 
 			SelectObject(memDC, oldBM);
 
@@ -261,7 +261,7 @@ BOOL WMFPreviewDoc::DrawWMF(HDC hdc, LPRECT lprcBounds, COLORREF clrBack)
 		DeleteDC(memDC);
 	}
 
-	return FALSE;
+	return rval;
 }
 
 void WMFPreviewDoc::OnDrawThumbnail(HDC hDrawDC, LPRECT lprcBounds)
@@ -308,64 +308,68 @@ void WMFPreviewDoc::OnDrawThumbnail(HDC hDrawDC, LPRECT lprcBounds)
 			delete buf;
 		}
 
-		// Center WMF in output rectangle
-		int dw = lprcBounds->right - lprcBounds->left;
-		int dh = lprcBounds->bottom - lprcBounds->top;
-
-		int w2 = dw;
-		int h2 = dh;
-
-		if (msize.cx > msize.cy && msize.cx > 0)
+		// Only if we have something to draw
+		if (msize.cx > 0 && msize.cy > 0)
 		{
-			h2 = (int) (w2 * (float) ((float) msize.cy / (float) msize.cx));
+			// Center WMF in output rectangle
+			int dw = lprcBounds->right - lprcBounds->left;
+			int dh = lprcBounds->bottom - lprcBounds->top;
 
-			if (h2 > dh && h2 > 0)
-			{
-				w2 = (int) (w2 * (float) ((float) dh / (float) h2));
-				h2 = dh;
-			}
-		}
-		else if (msize.cy > 0)
-		{
-			w2 = (int) (h2 * (float) ((float) msize.cx / (float) msize.cy));
+			int w2 = dw;
+			int h2 = dh;
 
-			if (w2 > dw && w2 > 0)
+			if (msize.cx > msize.cy && msize.cx > 0)
 			{
-				h2 = (int) (h2 * (float) ((float) dw / (float) w2));
-				w2 = dw;
+				h2 = (int)(w2 * (float)((float)msize.cy / (float)msize.cx));
+
+				if (h2 > dh && h2 > 0)
+				{
+					w2 = (int)(w2 * (float)((float)dh / (float)h2));
+					h2 = dh;
+				}
 			}
-		}
+			else if (msize.cy > 0)
+			{
+				w2 = (int)(h2 * (float)((float)msize.cx / (float)msize.cy));
+
+				if (w2 > dw && w2 > 0)
+				{
+					h2 = (int)(h2 * (float)((float)dw / (float)w2));
+					w2 = dw;
+				}
+			}
 
 #ifdef _DEBUG
 
-		temp.Format(_T(" WMFRECT: %d/%d WNDRECT: %d/%d  DRWRECT: %d/%d"), msize.cx, msize.cy, dw, dh, w2, h2);
-		strDebug += temp;
-
-		if (m_HasSpecialWMFHeader)
-		{
-			int checksum = CalcWMFHeaderChecksum(&m_SpecialWMFHeader);
-
-			temp.Format(_T(" CHK: %d/%d"), checksum, m_SpecialWMFHeader.Checksum);
+			temp.Format(_T(" WMFRECT: %d/%d WNDRECT: %d/%d  DRWRECT: %d/%d"), msize.cx, msize.cy, dw, dh, w2, h2);
 			strDebug += temp;
-		}
+
+			if (m_HasSpecialWMFHeader)
+			{
+				int checksum = CalcWMFHeaderChecksum(&m_SpecialWMFHeader);
+
+				temp.Format(_T(" CHK: %d/%d"), checksum, m_SpecialWMFHeader.Checksum);
+				strDebug += temp;
+			}
 
 #endif
 
-		// Set the drawing area
-		RECT prect;
-		prect.left = ((dw - w2) / 2) + lprcBounds->left;
-		prect.top = (dh - h2) / 2 + lprcBounds->top;
-		prect.right = prect.left + w2;
-		prect.bottom = prect.top + h2;
-		
-		// The line below draws the metafile using the older GDI function, 
-		// but we'll use GDI+ instead for better (antialiased) quality (although slower)
-		//PlayEnhMetaFile(hDrawDC, m_hMetaFile, &prect);
+			// Set the drawing area
+			RECT prect;
+			prect.left = ((dw - w2) / 2) + lprcBounds->left;
+			prect.top = (dh - h2) / 2 + lprcBounds->top;
+			prect.right = prect.left + w2;
+			prect.bottom = prect.top + h2;
 
-		Rect rect(prect.left, prect.top, w2, h2);
+			// The line below draws the metafile using the older GDI function, 
+			// but we'll use GDI+ instead for better (antialiased) quality (although slower)
+			//PlayEnhMetaFile(hDrawDC, m_hMetaFile, &prect);
 
-		// Draw the metafile
-		graphics.DrawImage(m_MetaFile, rect);
+			Rect rect(prect.left, prect.top, w2, h2);
+
+			// Draw the metafile
+			graphics.DrawImage(m_MetaFile, rect);
+		}
 	}
 #ifdef _DEBUG
 	else strDebug += _T(" NO_WMF_FILE");
@@ -387,8 +391,8 @@ void WMFPreviewDoc::OnDrawThumbnail(HDC hDrawDC, LPRECT lprcBounds)
 
 	StringFormat strFmt;
 
-	// Create point for upper-left corner of drawing.
 	RectF drawRect(PointF(0, 0), SizeF((REAL)lprcBounds->right - lprcBounds->left, (REAL)lprcBounds->bottom - lprcBounds->top));
+
 	graphics.DrawString(strDebug, strDebug.GetLength(), &drawFont, drawRect, &strFmt, &drawBrush);
 
 	DeleteObject(hDrawFont);
