@@ -7,6 +7,13 @@
 using namespace ATL;
 using namespace Gdiplus;
 
+#ifdef _DEBUG
+void DbgOut(CString txt);
+#define DBGOUT DbgOut
+#else
+#define DBGOUT
+#endif
+
 // META_PLACEABLE record; see: https://msdn.microsoft.com/en-us/library/cc669452.aspx
 
 typedef struct _WmfSpecialHeader

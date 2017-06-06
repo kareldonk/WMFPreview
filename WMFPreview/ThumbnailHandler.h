@@ -55,10 +55,9 @@ END_COM_MAP()
 protected:
 	virtual HRESULT GetBitmap(UINT cx, HBITMAP *phbmp, WTS_ALPHATYPE *pdwAlpha)
 	{
-		if (m_pDocument == NULL)
-		{
-			return E_NOTIMPL;
-		}
+		DBGOUT(_T("GetBitmap called for ThumbnailHandler"));
+
+		if (m_pDocument == NULL) return E_NOTIMPL;
 
 		// Implement OnDrawThumbnail in IDocument derived class
 		if (!((WMFPreviewDoc *)m_pDocument)->GetThumbnail(cx, phbmp, pdwAlpha))
@@ -71,6 +70,8 @@ protected:
 
 	virtual IDocument* CreateDocument()
 	{
+		DBGOUT(_T("CreateDocument called for ThumbnailHandler"));
+
 		WMFPreviewDoc *pDocument = NULL;
 		ATLTRY(pDocument = new WMFPreviewDoc());
 		return pDocument;

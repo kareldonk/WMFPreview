@@ -98,6 +98,8 @@ protected:
 
 	virtual IDocument* CreateDocument()
 	{
+		DBGOUT(_T("CreateDocument called for PreviewHandler"));
+
 		WMFPreviewDoc *pDocument = NULL;
 		ATLTRY(pDocument = new WMFPreviewDoc());
 		return (IDocument*)pDocument;

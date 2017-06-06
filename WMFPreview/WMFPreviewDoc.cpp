@@ -4,8 +4,17 @@
 #include <propkey.h>
 #include "WMFPreviewDoc.h"
 
+#ifdef _DEBUG
+void DbgOut(CString txt)
+{
+	OutputDebugStringW(_T("WMFPReview Handler: ") + txt);
+}
+#endif
+
 HRESULT WMFPreviewDoc::LoadFromStream(IStream* pStream, DWORD grfMode)
 {
+	DBGOUT(_T("LoadFromStream called for WMFPreviewDoc"));
+
 	// If we already have a metafile release it 
 	if (m_hMetaFile != NULL) ReleaseWMF();
 
@@ -15,6 +24,8 @@ HRESULT WMFPreviewDoc::LoadFromStream(IStream* pStream, DWORD grfMode)
 	ZeroMemory(&stat, sizeof(STATSTG));
 
 	if (pStream->Stat(&stat, STATFLAG_DEFAULT) != S_OK) return S_FALSE;
+	
+	DBGOUT(stat.pwcsName);
 
 	if (stat.cbSize.QuadPart < WMFSPECIALHEADERSIZE) return S_FALSE;
 
@@ -34,7 +45,12 @@ HRESULT WMFPreviewDoc::LoadFromStream(IStream* pStream, DWORD grfMode)
 
 				// Verify correct header
 				if (CalcWMFHeaderChecksum(&m_SpecialWMFHeader) != m_SpecialWMFHeader.Checksum ||
-					m_SpecialWMFHeader.Handle != 0 || m_SpecialWMFHeader.Reserved != 0) return S_FALSE;
+					m_SpecialWMFHeader.Handle != 0 || m_SpecialWMFHeader.Reserved != 0)
+				{
+					DBGOUT(_T("Bad special WMF/EMF fileheader detected"));
+
+					return S_FALSE;
+				}
 			}
 
 			LARGE_INTEGER pos;
@@ -103,12 +119,14 @@ HRESULT WMFPreviewDoc::LoadFromStream(IStream* pStream, DWORD grfMode)
 
 											return S_OK;
 										}
+										else DBGOUT(_T("Couldn't set WMF/EMF filebits"));
 									}
 								}
 
 								delete data;
 							}
 						}
+						else DBGOUT(_T("Unsupported WMF/EMF type"));
 					}
 				}
 			}
@@ -267,7 +285,7 @@ void WMFPreviewDoc::OnDrawThumbnail(HDC hDrawDC, LPRECT lprcBounds)
 #ifdef _DEBUG
 
 	CString temp;
-	CString strDebug = _T("Debug Info:");
+	CString strDebug = _T("File info:");
 
 #endif
 
@@ -339,7 +357,7 @@ void WMFPreviewDoc::OnDrawThumbnail(HDC hDrawDC, LPRECT lprcBounds)
 
 #ifdef _DEBUG
 
-			temp.Format(_T(" WMFRECT: %d/%d WNDRECT: %d/%d  DRWRECT: %d/%d"), msize.cx, msize.cy, dw, dh, w2, h2);
+			temp.Format(_T(" WMFRECT: %d/%d WNDRECT: %d/%d DRWRECT: %d/%d"), msize.cx, msize.cy, dw, dh, w2, h2);
 			strDebug += temp;
 
 			if (m_HasSpecialWMFHeader)
@@ -374,17 +392,12 @@ void WMFPreviewDoc::OnDrawThumbnail(HDC hDrawDC, LPRECT lprcBounds)
 
 	HFONT hStockFont = (HFONT) GetStockObject(DEFAULT_GUI_FONT);
 	LOGFONT lf;
-
 	GetObject(hStockFont, sizeof(LOGFONT), &lf);
 	lf.lfHeight = 24;
 	HFONT hDrawFont = CreateFontIndirect(&lf);
-
-	int bdept = GetDeviceCaps(hDrawDC, BITSPIXEL);
-
-	temp.Format(_T(" %dBIT"), bdept);
-	strDebug += temp;
-
+	
 	Font drawFont(hDrawDC, hDrawFont);
+
 	SolidBrush drawBrush(Color::Red);
 
 	StringFormat strFmt;
@@ -392,6 +405,8 @@ void WMFPreviewDoc::OnDrawThumbnail(HDC hDrawDC, LPRECT lprcBounds)
 	RectF drawRect(PointF(0, 0), SizeF((REAL)lprcBounds->right - lprcBounds->left, (REAL)lprcBounds->bottom - lprcBounds->top));
 
 	graphics.DrawString(strDebug, strDebug.GetLength(), &drawFont, drawRect, &strFmt, &drawBrush);
+
+	DBGOUT(strDebug);
 
 	DeleteObject(hDrawFont);
 #endif
