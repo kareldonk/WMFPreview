@@ -4,8 +4,6 @@
 #include <propkey.h>
 #include "WMFPreviewDoc.h"
 
-// TODO: Add icon and change resource id in rgs
-
 HRESULT WMFPreviewDoc::LoadFromStream(IStream* pStream, DWORD grfMode)
 {
 	// If we already have a metafile release it 
@@ -13,7 +11,6 @@ HRESULT WMFPreviewDoc::LoadFromStream(IStream* pStream, DWORD grfMode)
 
 	BOOL bShdr = FALSE;
 
-	ULONG len = 0;
 	STATSTG stat;
 	ZeroMemory(&stat, sizeof(STATSTG));
 
@@ -22,6 +19,8 @@ HRESULT WMFPreviewDoc::LoadFromStream(IStream* pStream, DWORD grfMode)
 	if (stat.cbSize.QuadPart < WMFSPECIALHEADERSIZE) return S_FALSE;
 
 	ZeroMemory(&m_SpecialWMFHeader, WMFSPECIALHEADERSIZE);
+
+	ULONG len = 0;
 
 	// First check if there's a special WMF header
 	if (pStream->Read(&m_SpecialWMFHeader, WMFSPECIALHEADERSIZE, &len) == S_OK)
@@ -46,7 +45,6 @@ HRESULT WMFPreviewDoc::LoadFromStream(IStream* pStream, DWORD grfMode)
 			if (pStream->Seek(pos, STREAM_SEEK_SET, NULL) == S_OK)
 			{
 				METAHEADER hdr;
-
 				ZeroMemory(&hdr, sizeof(METAHEADER));
 
 				// Read WMF header
